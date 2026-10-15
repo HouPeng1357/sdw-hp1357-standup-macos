@@ -3,7 +3,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-APP_NAME="sdw-he-standup-macos"
+APP_NAME="sdw-hp1357-standup-macos"
 BIN_NAME="SDWStandup"
 BUNDLE="dist/${APP_NAME}.app"
 

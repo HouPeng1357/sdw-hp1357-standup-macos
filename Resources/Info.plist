@@ -5,9 +5,9 @@
 	<key>CFBundleExecutable</key>
 	<string>SDWStandup</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.houengineer.sdw-he-standup</string>
+	<string>work.houpeng.sdw-hp1357-standup</string>
 	<key>CFBundleName</key>
-	<string>sdw-he-standup-macos</string>
+	<string>sdw-hp1357-standup-macos</string>
 	<key>CFBundleDisplayName</key>
 	<string>Standup Reminder</string>
 	<key>CFBundlePackageType</key>

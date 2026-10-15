@@ -1,4 +1,4 @@
-# sdw-he-standup-macos
+# sdw-hp1357-standup-macos
 
 久坐提醒 macOS 应用：菜单栏常驻，可设置间隔提醒起身。到点时会在**所有显示器**上，从屏幕边框向中心展示一条**呼吸渐变光带**（渐变宽度 = 屏幕短边的 10%，颜色可配置），几秒后自动淡出，不打断工作流。
 
@@ -29,12 +29,12 @@ swift run
 
 # 打包为 .app（ad-hoc 签名）
 ./Scripts/package.sh
-open dist/sdw-he-standup-macos.app
+open dist/sdw-hp1357-standup-macos.app
 ```
 
 ## 安装与开机自启
 
-1. 将打包出的 `sdw-he-standup-macos.app` 拷贝到 `/Applications`（自启依赖稳定路径）。
+1. 将打包出的 `sdw-hp1357-standup-macos.app` 拷贝到 `/Applications`（自启依赖稳定路径）。
 2. 首次打开若被 Gatekeeper 拦截，右键 → 打开，或 系统设置 → 隐私与安全性 → 仍要打开。
 3. 点菜单栏图标 → 设置… → 打开「开机自动启动」。
 4. 到 系统设置 → 通用 → 登录项 确认条目出现（首次可能需手动允许）。
