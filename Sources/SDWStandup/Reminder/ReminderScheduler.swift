@@ -5,7 +5,7 @@ final class ReminderScheduler: ObservableObject {
     static let shared = ReminderScheduler()
 
     private let settings = AppSettings.shared
-    private var task: Task<Void, Never>?
+    private var timer: DispatchSourceTimer?
 
     /// 下次提醒的触发时间（nil = 已暂停 / 未启动），供 UI 显示倒计时。
     @Published private(set) var nextFireDate: Date?
@@ -13,32 +13,28 @@ final class ReminderScheduler: ObservableObject {
     private init() {}
 
     func start() {
-        task?.cancel()
-        task = Task { @MainActor [weak self] in
-            await self?.runLoop()
+        timer?.cancel()
+        timer = nil
+
+        let interval = Double(settings.intervalMinutes) * 60
+        let next = Date().addingTimeInterval(interval)
+        nextFireDate = next
+
+        let t = DispatchSource.makeTimerSource(queue: .main)
+        // 用 wallDeadline（墙上时钟）：系统睡眠 / App Nap 挂起期间也照常计时，
+        // 唤醒后若已过期会立即补触发，避免长 sleep 被冻结后永不醒来。
+        t.schedule(wallDeadline: .now() + interval, repeating: interval)
+        t.setEventHandler { [weak self] in
+            OverlayController.shared.show()
+            self?.nextFireDate = Date().addingTimeInterval(interval)
         }
+        t.resume()
+        timer = t
     }
 
     func stop() {
-        task?.cancel()
-        task = nil
+        timer?.cancel()
+        timer = nil
         nextFireDate = nil
-    }
-
-    private func runLoop() async {
-        let interval = Double(settings.intervalMinutes) * 60
-        var next = Date().addingTimeInterval(interval)
-        nextFireDate = next
-        while !Task.isCancelled {
-            let delay = next.timeIntervalSinceNow
-            if delay <= 0 {
-                OverlayController.shared.show()
-                next = Date().addingTimeInterval(interval)
-                nextFireDate = next
-            } else {
-                // ContinuousClock：睡眠时间照算，唤醒后立即补触发
-                try? await Task.sleep(for: .seconds(delay))
-            }
-        }
     }
 }

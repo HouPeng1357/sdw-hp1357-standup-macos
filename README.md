@@ -61,7 +61,7 @@ Scripts/make-icon.sh           # png -> icns
 - **覆盖层**：每屏一个透明 `NSWindow`（`level = .screenSaver`，`ignoresMouseEvents = true`），`collectionBehavior` 覆盖所有 Space 与全屏 App。
 - **渐变**：四条 `CAGradientLayer` 各沿屏幕边向中心渐隐，宽度 = 短边 10%。
 - **呼吸**：`CABasicAnimation`（opacity 0.55↔1.0 无限往返），合成器侧执行、零主线程开销。
-- **定时**：`Task.sleep(for:)`（`ContinuousClock`）+ 绝对时间锚定，休眠唤醒后立即补触发。
+- **定时**：`DispatchSourceTimer`（`wallDeadline` 墙上时钟）+ 绝对时间锚定，系统睡眠/挂起唤醒后立即补触发。
 
 ## 免责声明
 
