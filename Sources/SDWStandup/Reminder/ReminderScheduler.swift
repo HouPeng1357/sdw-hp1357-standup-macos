@@ -10,6 +10,10 @@ final class ReminderScheduler: ObservableObject {
     /// 下次提醒的触发时间（nil = 已暂停 / 未启动），供 UI 显示倒计时。
     @Published private(set) var nextFireDate: Date?
 
+    /// 提醒已触发但用户尚未确认。期间菜单栏图标保持绿色，
+    /// 直到用户点击菜单栏图标确认后重新计时。
+    @Published private(set) var hasPendingReminder = false
+
     private init() {}
 
     func start() {
@@ -25,6 +29,7 @@ final class ReminderScheduler: ObservableObject {
         // 唤醒后若已过期会立即补触发，避免长 sleep 被冻结后永不醒来。
         t.schedule(wallDeadline: .now() + interval, repeating: interval)
         t.setEventHandler { [weak self] in
+            self?.hasPendingReminder = true
             OverlayController.shared.show()
             self?.nextFireDate = Date().addingTimeInterval(interval)
         }
@@ -36,5 +41,11 @@ final class ReminderScheduler: ObservableObject {
         timer?.cancel()
         timer = nil
         nextFireDate = nil
+    }
+
+    /// 用户确认提醒：清除绿色状态并重新开始完整间隔。
+    func acknowledgeReminder() {
+        hasPendingReminder = false
+        start()
     }
 }

@@ -10,6 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var pauseItem: NSMenuItem?
     private var resetItem: NSMenuItem?
     private var menuTimer: Timer?
+    private var pendingReminder = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // 开发期 swift run 裸跑也不显示 Dock 图标
@@ -51,6 +52,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
             .store(in: &cancellables)
 
+        ReminderScheduler.shared.$hasPendingReminder
+            .dropFirst()
+            .sink { [weak self] pending in
+                self?.pendingReminder = pending
+                self?.refreshStatusIcon()
+            }
+            .store(in: &cancellables)
+
         if !settings.isPaused {
             ReminderScheduler.shared.start()
         }
@@ -81,7 +90,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func setupMenuBar() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        item.button?.image = statusIcon(paused: AppSettings.shared.isPaused)
 
         let menu = NSMenu()
         menu.delegate = self
@@ -119,11 +127,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         pauseItem = pause
         resetItem = reset
         updateCountdown()
+        refreshStatusIcon()
     }
 
     // MARK: - NSMenuDelegate：菜单打开期间逐秒刷新倒计时
 
     func menuWillOpen(_ menu: NSMenu) {
+        // 点击菜单栏图标即视为确认提醒：清除绿色并重新计时。
+        if pendingReminder {
+            ReminderScheduler.shared.acknowledgeReminder()
+        }
         refreshPauseUI()
         resetItem?.isEnabled = !AppSettings.shared.isPaused
         updateCountdown()
@@ -155,15 +168,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func refreshPauseUI() {
         let paused = AppSettings.shared.isPaused
-        statusItem?.button?.image = statusIcon(paused: paused)
         pauseItem?.title = paused ? "恢复提醒" : "暂停提醒"
+        refreshStatusIcon()
     }
 
-    private func statusIcon(paused: Bool) -> NSImage? {
-        let image = NSImage(systemSymbolName: paused ? "pause.circle" : "figure.stand",
-                            accessibilityDescription: "久坐提醒")
-        image?.isTemplate = true
-        return image
+    /// 统一刷新菜单栏图标：有未确认的提醒时显示绿色，否则按暂停 / 运行状态显示。
+    private func refreshStatusIcon() {
+        let paused = AppSettings.shared.isPaused
+        let symbolName = pendingReminder ? "figure.stand" : (paused ? "pause.circle" : "figure.stand")
+        let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "久坐提醒")
+
+        if pendingReminder {
+            // palette 着色生成真正的绿色图像；必须关闭 isTemplate，否则系统会忽略颜色按模板色渲染。
+            let colored = image?.withSymbolConfiguration(
+                NSImage.SymbolConfiguration(paletteColors: [.systemGreen]))
+            colored?.isTemplate = false
+            statusItem?.button?.image = colored
+        } else {
+            image?.isTemplate = true
+            statusItem?.button?.image = image
+        }
     }
 
     // MARK: - 菜单动作
