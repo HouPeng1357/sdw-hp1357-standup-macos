@@ -192,7 +192,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return
         }
         let progress = ReminderScheduler.shared.progress ?? 0
-        statusItem?.button?.image = progressStandIcon(progress: progress)
+        // 超过 80% 但未到点时封顶在 80%，避免肉眼误判为已到点全绿。
+        statusItem?.button?.image = progressStandIcon(progress: min(progress, 0.8))
     }
 
     /// 站立图标：底部 progress 比例绿色，顶部为菜单栏默认色（labelColor 自动适配明暗）。
