@@ -60,6 +60,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
             .store(in: &cancellables)
 
+        // 菜单栏进度图标逐秒重绘（开销极小）
+        Timer.publish(every: 1, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in self?.refreshStatusIcon() }
+            .store(in: &cancellables)
+
         if !settings.isPaused {
             ReminderScheduler.shared.start()
         }
@@ -172,21 +178,43 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         refreshStatusIcon()
     }
 
-    /// 统一刷新菜单栏图标：有未确认的提醒时显示绿色，否则按暂停 / 运行状态显示。
+    /// 统一刷新菜单栏图标：
+    /// 未确认提醒 → 全绿；暂停 → pause.circle；正常 → 按倒计时进度从下往上变绿。
     private func refreshStatusIcon() {
-        let paused = AppSettings.shared.isPaused
-        let symbolName = pendingReminder ? "figure.stand" : (paused ? "pause.circle" : "figure.stand")
-        let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "久坐提醒")
-
         if pendingReminder {
-            // palette 着色生成真正的绿色图像；必须关闭 isTemplate，否则系统会忽略颜色按模板色渲染。
-            let colored = image?.withSymbolConfiguration(
-                NSImage.SymbolConfiguration(paletteColors: [.systemGreen]))
-            colored?.isTemplate = false
-            statusItem?.button?.image = colored
-        } else {
+            statusItem?.button?.image = progressStandIcon(progress: 1)
+            return
+        }
+        if AppSettings.shared.isPaused {
+            let image = NSImage(systemSymbolName: "pause.circle", accessibilityDescription: "久坐提醒")
             image?.isTemplate = true
             statusItem?.button?.image = image
+            return
+        }
+        let progress = ReminderScheduler.shared.progress ?? 0
+        statusItem?.button?.image = progressStandIcon(progress: progress)
+    }
+
+    /// 站立图标：底部 progress 比例绿色，顶部为菜单栏默认色（labelColor 自动适配明暗）。
+    /// 用符号自身尺寸作画布，保证进度各阶段与全绿图标大小一致。
+    private func progressStandIcon(progress: Double) -> NSImage? {
+        guard let bg = NSImage(systemSymbolName: "figure.stand", accessibilityDescription: nil)?
+            .withSymbolConfiguration(NSImage.SymbolConfiguration(paletteColors: [.labelColor])),
+              let fg = NSImage(systemSymbolName: "figure.stand", accessibilityDescription: nil)?
+            .withSymbolConfiguration(NSImage.SymbolConfiguration(paletteColors: [.systemGreen]))
+        else { return nil }
+
+        let size = bg.size
+        let fillHeight = max(0, min(size.height * CGFloat(progress), size.height))
+        return NSImage(size: size, flipped: false) { rect in
+            bg.draw(in: rect)
+            if fillHeight > 0 {
+                NSGraphicsContext.saveGraphicsState()
+                NSBezierPath(rect: NSRect(x: 0, y: 0, width: size.width, height: fillHeight)).addClip()
+                fg.draw(in: rect)
+                NSGraphicsContext.restoreGraphicsState()
+            }
+            return true
         }
     }
 

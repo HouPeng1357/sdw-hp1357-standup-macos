@@ -14,6 +14,15 @@ final class ReminderScheduler: ObservableObject {
     /// 直到用户点击菜单栏图标确认后重新计时。
     @Published private(set) var hasPendingReminder = false
 
+    /// 当前倒计时进度（0~1）：0 = 刚重置，1 = 即将提醒；暂停时为 nil。
+    var progress: Double? {
+        guard let next = nextFireDate else { return nil }
+        let interval = Double(settings.intervalMinutes) * 60
+        guard interval > 0 else { return nil }
+        let remaining = next.timeIntervalSinceNow
+        return min(max(1 - remaining / interval, 0), 1)
+    }
+
     private init() {}
 
     func start() {
