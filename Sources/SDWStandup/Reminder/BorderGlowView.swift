@@ -96,7 +96,8 @@ final class BorderGlowView: NSView {
         a.toValue = 0.55
         a.duration = cycle
         a.autoreverses = true
-        a.repeatCount = .infinity
+        // 只呼吸 3 次后停在满亮度，避免无限动画持续占用 GPU。
+        a.repeatCount = 3
         a.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
         breatheLayer.add(a, forKey: "breathe")
     }
