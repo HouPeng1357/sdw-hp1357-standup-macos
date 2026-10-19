@@ -39,7 +39,7 @@ final class ReminderScheduler: ObservableObject {
         t.schedule(wallDeadline: .now() + interval, repeating: interval)
         t.setEventHandler { [weak self] in
             self?.hasPendingReminder = true
-            OverlayController.shared.show()
+            OverlayController.shared.show(persistent: self?.settings.alwaysShowReminder ?? false)
             self?.nextFireDate = Date().addingTimeInterval(interval)
         }
         t.resume()
@@ -52,8 +52,9 @@ final class ReminderScheduler: ObservableObject {
         nextFireDate = nil
     }
 
-    /// 用户确认提醒：清除绿色状态并重新开始完整间隔。
+    /// 用户确认提醒：隐藏覆盖层、清除绿色状态并重新开始完整间隔。
     func acknowledgeReminder() {
+        OverlayController.shared.hide()
         hasPendingReminder = false
         start()
     }

@@ -34,14 +34,24 @@ struct SettingsView: View {
                 clamp(&settings.intervalMinutes, v, 1...480)
             }
 
-            // 展示时长
+            // 一直展示提示
             HStack {
-                rowLabel("展示时长")
+                rowLabel("一直展示提示")
                 Spacer()
-                numberField(value: $settings.displaySeconds, unit: "秒")
+                Toggle("", isOn: $settings.alwaysShowReminder)
+                    .labelsHidden()
             }
-            .onChange(of: settings.displaySeconds) { v in
-                clamp(&settings.displaySeconds, v, 1...120)
+
+            // 展示时长（勾选「一直展示提示」后隐藏）
+            if !settings.alwaysShowReminder {
+                HStack {
+                    rowLabel("展示时长")
+                    Spacer()
+                    numberField(value: $settings.displaySeconds, unit: "秒")
+                }
+                .onChange(of: settings.displaySeconds) { v in
+                    clamp(&settings.displaySeconds, v, 1...120)
+                }
             }
 
             // 渐变颜色

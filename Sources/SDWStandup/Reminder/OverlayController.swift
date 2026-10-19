@@ -14,7 +14,7 @@ final class OverlayController {
 
     var visible: Bool { isShowing }
 
-    func show() {
+    func show(persistent: Bool = false) {
         rebuildIfNeeded()
         for w in windows {
             w.orderFrontRegardless()
@@ -22,7 +22,13 @@ final class OverlayController {
                 .fadeInThenBreathe(breathCycle: settings.breathCycleSeconds)
         }
         isShowing = true
-        scheduleDismiss()
+        if persistent {
+            // 一直展示：不排定自动淡出，等用户确认后由 hide() 关闭。
+            dismissTask?.cancel()
+            dismissTask = nil
+        } else {
+            scheduleDismiss()
+        }
     }
 
     func hide() {
