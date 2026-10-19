@@ -201,12 +201,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return
         }
         let progress = ReminderScheduler.shared.progress ?? 0
-        // 超过 80% 但未到点时封顶在 80%，避免肉眼误判为已到点全绿。
-        statusItem?.button?.image = progressStandIcon(progress: min(progress, 0.8))
+        statusItem?.button?.image = progressStandIcon(progress: progress)
     }
 
     /// 站立图标：底部 progress 比例绿色，顶部为菜单栏默认色（labelColor 自动适配明暗）。
-    /// 用符号自身尺寸作画布，保证进度各阶段与全绿图标大小一致。
+    /// 用符号的人物实际轮廓（alignmentRect）作填充基准，做到「顶天立地」：
+    /// 脚底 = 0%、头顶 = 100%，避免画布上下留白让 80% 就看似全绿。
     private func progressStandIcon(progress: Double) -> NSImage? {
         guard let bg = NSImage(systemSymbolName: "figure.stand", accessibilityDescription: nil)?
             .withSymbolConfiguration(NSImage.SymbolConfiguration(paletteColors: [.labelColor])),
@@ -215,12 +215,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         else { return nil }
 
         let size = bg.size
-        let fillHeight = max(0, min(size.height * CGFloat(progress), size.height))
+        let bounds = bg.alignmentRect
+        let clamped = max(0, min(progress, 1))
+        let fillTop = bounds.minY + bounds.height * CGFloat(clamped)
+
         return NSImage(size: size, flipped: false) { rect in
             bg.draw(in: rect)
-            if fillHeight > 0 {
+            if fillTop > bounds.minY {
                 NSGraphicsContext.saveGraphicsState()
-                NSBezierPath(rect: NSRect(x: 0, y: 0, width: size.width, height: fillHeight)).addClip()
+                NSBezierPath(rect: NSRect(x: 0, y: 0, width: size.width, height: fillTop)).addClip()
                 fg.draw(in: rect)
                 NSGraphicsContext.restoreGraphicsState()
             }
