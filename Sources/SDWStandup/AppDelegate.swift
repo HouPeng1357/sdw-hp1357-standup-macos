@@ -11,7 +11,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var resetItem: NSMenuItem?
     private var menuTimer: Timer?
     private var pendingReminder = false
-    private var escapeMonitor: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // 开发期 swift run 裸跑也不显示 Dock 图标
@@ -58,6 +57,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             .sink { [weak self] pending in
                 self?.pendingReminder = pending
                 self?.refreshStatusIcon()
+                // 提醒期间菜单栏图标被绿色进度覆盖、难以定位，右下角悬浮按钮作为确认入口。
+                pending ? FloatingButtonController.shared.show() : FloatingButtonController.shared.hide()
             }
             .store(in: &cancellables)
 
@@ -66,14 +67,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             .autoconnect()
             .sink { [weak self] _ in self?.refreshStatusIcon() }
             .store(in: &cancellables)
-
-        // 全局监听 ESC：提醒待确认时按 ESC 相当于点击菜单栏图标（需辅助功能权限）。
-        escapeMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard event.keyCode == 53 else { return }
-            DispatchQueue.main.async {
-                self?.handleEscapeKey()
-            }
-        }
 
         if !settings.isPaused {
             ReminderScheduler.shared.start()
@@ -229,12 +222,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
             return true
         }
-    }
-
-    /// ESC 确认提醒（相当于点击菜单栏图标）。
-    private func handleEscapeKey() {
-        guard pendingReminder else { return }
-        ReminderScheduler.shared.acknowledgeReminder()
     }
 
     // MARK: - 菜单动作
