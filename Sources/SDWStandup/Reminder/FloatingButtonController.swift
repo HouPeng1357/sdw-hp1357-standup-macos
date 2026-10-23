@@ -41,7 +41,8 @@ final class FloatingButtonController {
                               styleMask: [.borderless],
                               backing: .buffered,
                               defer: false)
-        window.level = .screenSaver
+        // 比覆盖层（.screenSaver）高一层，确保按钮浮在渐变光带之上不被盖住。
+        window.level = NSWindow.Level(rawValue: NSWindow.Level.screenSaver.rawValue + 1)
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle, .stationary]
         window.isOpaque = false
         window.backgroundColor = .clear
